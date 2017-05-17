@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Windows.h>
+
 typedef unsigned char	byte;
 typedef unsigned short	word;
 typedef unsigned int	dword;
@@ -35,3 +37,5 @@ typedef struct _SPFS_FILE_ENTRY {
 	dword			LBALow;
 	dword			LBAHigh;
 } SPFS_FILE_ENTRY;
+
+HANDLE OpenVolume(const char* name, )
