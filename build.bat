@@ -1,1 +1,1 @@
-nasm -f bin -o bin/boot_mbr.bin boot/boot_mbr.asm
+call boot\build
