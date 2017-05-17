@@ -1,4 +1,5 @@
 bin/
 *.db
 *.opendb
-.vs
+*.vs
+*.bak
