@@ -3,11 +3,14 @@ SuperPotato Filesystem (spfs)
 
 SPFS_HEADER:
 	byte  Reserved[3] //jmp <addresss> nop
-	word  Version
+	word  Version	  
+	word  Reserved
 	byte  VolumeLabel[16]
 	word  BytesPerSector
+	byte  ReservedSectors
 	dword NumSectorsLow
 	dword NumSectorsHigh
+	dword FileTables
 
 SPFS_DATE_TIME:
 	word time //bits 0-5 minutes, 6-10 hours, 11-15 days
@@ -15,10 +18,11 @@ SPFS_DATE_TIME:
 
 SPFS_FILE_ENTRY
 	byte  			Type
-	byte  			Name[50]
+	byte 			Reserved
+	word			Reserved
+	byte  			Name[40]
 	SPFS_DATE_TIME	creationDate
 	dword 			SizeLow
 	dword 			SizeHigh
 	dword 			LBALow
 	dword			LBAHigh
-	
