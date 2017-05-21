@@ -13,14 +13,9 @@ void CalculateAllocationTable(qword sectors, qword size, qword* usable, qword* t
 	*usable = sectors - *tracking;
 }
 
-qword GetDiskSize(HANDLE disk) {
-	dword high = 0;
-	dword low = GetFileSize(disk, (LPDWORD)&high);
-	return low | (high << 32);
-}
-
 dword OpenVolume(HANDLE disk, byte partition, SPFS_VOLUME* vol) {
 	if (!vol) return SPFS_ERROR_INVALID_PARAM;
+	if (disk == INVALID_HANDLE_VALUE) return SPFS_ERROR_NO_MEDIA;
 
 	vol->handle = disk;
 	vol->offset = 0;
@@ -29,7 +24,29 @@ dword OpenVolume(HANDLE disk, byte partition, SPFS_VOLUME* vol) {
 
 	if (vol->hdr.Version != SPFS_VERSION) return SPFS_ERROR_NO_MEDIA;
 
-	vol->offsetToAllocationTable = vol->hdr.FileTables + vol->offset + 1;
+	vol->offsetToAllocationTable = vol->hdr.FileTables + vol->hdr.ReservedSectors + vol->offset + 1;
 
 	return SPFS_SUCCESS;
+}
+
+dword FormatVolume(HANDLE disk, byte partition, SPFS_VOLUME* vol, SPFS_FORMAT* format) {
+	if (!vol) return SPFS_ERROR_INVALID_PARAM;
+	if (disk == INVALID_HANDLE_VALUE) return SPFS_ERROR_NO_MEDIA;
+
+	vol->handle = disk;
+
+	vol->hdr.Version = SPFS_VERSION;
+	vol->hdr.ReservedSectors = format->reservedSectors;
+	vol->hdr.FileTables = format->fileTables;
+
+	size_t len = strlen(format->name);
+
+	if (len > 16) return SPFS_ERROR_INVALID_PARAM;
+
+	memset(vol->hdr.VolumeLabel, 0, 16);
+	memcpy(vol->hdr.VolumeLabel, format->name, len);
+
+	GetDiskInfo(disk, &vol->hdr.BytesPerSecond, &vol->hdr.NumSectors);
+	
+
 }

@@ -45,6 +45,14 @@ typedef struct _SPFS_VOLUME {
 	HANDLE handle;
 } SPFS_VOLUME;
 
+typedef struct _SPFS_FORMAT {
+	const char* name;
+
+	dword fileTables;
+
+	byte reservedSectors;
+} SPFS_FORMAT;
+
 #define SPFS_VERSION 0x0010
 
 #define SPFS_FILE_TYPE_UNUSED	0x00
@@ -73,7 +81,7 @@ typedef struct _SPFS_VOLUME {
 
 HANDLE		OpenDisk(const char* name);
 dword		OpenVolume(HANDLE disk, byte partition, SPFS_VOLUME* vol);
-dword		FormatVolume(HANDLE disk, byte partiion, SPFS_VOLUME* vol);
+dword		FormatVolume(HANDLE disk, byte partiion, SPFS_VOLUME* vol, SPFS_FORMAT* format);
 void		CloseVolume(SPFS_VOLUME* vol);
 void		CloseDisk(HANDLE handle);
 
