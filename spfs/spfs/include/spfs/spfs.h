@@ -12,10 +12,14 @@ typedef struct _SPFS_HEADER {
 	word  Version;
 	word  Reserved1;
 	byte  VolumeLabel[16];
-	word  BytesPerSecond;
+	word  BytesPerSector;
 	byte  ReservedSectors;
-	qword NumSectors;
-	dword FileTables;
+	qword NumDataSectors;
+	qword DataSector;
+	dword NumFileTables;
+	qword FileTable;
+	qword NumAllocationTables;
+	qword AllocationTable;
 } SPFS_HEADER;
 
 typedef struct _SPFS_DATE_TIME {
@@ -38,9 +42,6 @@ typedef struct _SPFS_FILE_ENTRY {
 
 typedef struct _SPFS_VOLUME {
 	SPFS_HEADER hdr;
-
-	qword offset = 0;
-	qword offsetToAllocationTable = 0;
 
 	HANDLE handle;
 } SPFS_VOLUME;
