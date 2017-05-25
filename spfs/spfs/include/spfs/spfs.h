@@ -15,9 +15,6 @@ typedef struct _SPFS_HEADER {
 	word  BytesPerSector;
 	byte  ReservedSectors;
 	qword NumDataSectors;
-	qword DataSector;
-	dword NumFileTables;
-	qword FileTable;
 	qword NumAllocationTables;
 	qword AllocationTable;
 } SPFS_HEADER;
@@ -56,21 +53,24 @@ typedef struct _SPFS_FORMAT {
 
 #define SPFS_VERSION 0x0010
 
-#define SPFS_FILE_TYPE_UNUSED	0x00
-#define SPFS_FILE_TYPE_FILE		0x01
-#define SPFS_FILE_TYPE_FOLDER	0x02
+#define SPFS_FILE_TYPE_UNUSED		0x00
+#define SPFS_FILE_TYPE_FILE			0x01
+#define SPFS_FILE_TYPE_FOLDER		0x02
+
 
 #define SPFS_SECTOR_FREE		0x00
 #define SPFS_SECTOR_USED		0x01
 #define SPFS_SECTOR_SYSTEM		(0x02 | SPFS_SECTOR_USED)
-#define SPFS_SECTOR_RESERVED	(0x04 | SPFS_SECTOR_USED)
+#define SPFS_SECTOR_FULL		0x04
+#define SPFS_SECTOR_SYSTEM_FULL	(SPFS_SECTOR_SYSTEM | SPFS_SECTOR_FULL)
+#define SPFS_SECTOR_RESERVED	(0x08 | SPFS_SECTOR_USED)
 
 #define SPFS_SUCCESS 0x00
 
 #define SPFS_ERROR_NONE				SPFS_SUCCESS
 #define SPFS_ERROR_NO_MEDIA			0x01
 #define SPFS_ERROR_INVALID_PARAM	0x02
-#define SPFS_ERROR_NOT_A_FILE		0x03
+#define SPFS_ERROR_INVALID_PATH		0x03
 #define SPFS_ERROR_ALREADY_EXIST	0x04
 
 #define SPFS_ATTRIBUTE_CREATE		0x01
@@ -78,7 +78,8 @@ typedef struct _SPFS_FORMAT {
 #define SPFS_ATTRIBUTE_FOLDER		0x04
 #define SPFS_ATTRIBUTE_OVERWRITE	0x08
 
-#define SPFS_ATTRIBUTE_FILE_OVERWRITE (SPFS_ATTRIBUTE_FILE | SPFS_ATTRIBUTE_OVERWRITE)
+#define SPFS_ATTRIBUTE_FILE_OVERWRITE	(SPFS_ATTRIBUTE_FILE | SPFS_ATTRIBUTE_OVERWRITE)
+#define SPFS_ATTRIBUTE_FILE_CREATE		(SPFS_ATTRIBUTE_FILE | SPFS_ATTRIBUTE_CREATE)
 
 HANDLE		OpenDisk(const char* name);
 dword		OpenVolume(HANDLE disk, byte partition, SPFS_VOLUME* vol);
@@ -87,8 +88,8 @@ void		CloseVolume(SPFS_VOLUME* vol);
 void		CloseDisk(HANDLE handle);
 
 word		VolumeGetFileEntry(SPFS_VOLUME* vol, const char* path, SPFS_FILE_ENTRY* entry);
-word		VolumeReadFile(SPFS_VOLUME* vol, const char* path, void** file, qword* size);
 word		VolumeReadFolder(SPFS_VOLUME* vol, const char* path, SPFS_FILE_ENTRY** file, qword* num_entries);
+word		VolumeReadFile(SPFS_VOLUME* vol, const char* path, void** file, qword* size);
 
 word		VolumeWrite(SPFS_VOLUME* vol, const char* path, byte* data, qword size, byte attributes);
 
