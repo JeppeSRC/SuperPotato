@@ -1,64 +1,7 @@
 #include <spfs/spfs.h>
 
 #include "disk.h"
-
-inline void FreePaths(char** paths, dword num) {
-	for (dword i = 0; i < num; i++) {
-		delete[] paths[i];
-	}
-
-	delete[] paths;
-}
-
-inline size_t CountSlash(const char* path) {
-	size_t len = strlen(path);
-	size_t res = 0;
-	for (size_t i = 0; i < len; i++) {
-		if (path[i] == '/' || path[i] == '\\') res++;
-	}
-
-	return res;
-}
-
-inline void SplitPath(const char* path, char*** paths, dword* num_paths) {
-	word index = 0;
-
-	*num_paths = CountSlash(path)-1;
-
-	*paths = new char*[*num_paths];
-
-
-	char** dir = *paths;
-
-	size_t len = strlen(path);
-	size_t last = 1;
-
-	for (size_t i = 1; i < len; i++) {
-		const char c = path[i];
-		if (c == '/' || c == '\\') {
-			size_t strlen = i - last;
-			dir[index] = new char[strlen];
-			memcpy(dir[index], path + last, strlen);
-			last = i + 1;
-			index++;
-		}
-	}
-
-	size_t strlen = len - last;
-	dir[index] = new char[strlen];
-	memcpy(dir[index], path + last, strlen);
-}
-
-void CalculateAllocationTable(qword sectors, qword size, qword* usable, qword* tracking) {
-	*tracking = sectors / size;
-
-	qword notNeeded = *tracking / size;
-
-	if (notNeeded) notNeeded--;
-
-	*tracking -= notNeeded;
-	*usable = sectors - *tracking;
-}
+#include "util.h"
 
 dword OpenVolume(HANDLE disk, byte partition, SPFS_VOLUME* vol) {
 	if (!vol) return SPFS_ERROR_INVALID_PARAM;
@@ -103,6 +46,15 @@ dword FormatVolume(HANDLE disk, byte partition, SPFS_VOLUME* vol, SPFS_FORMAT* f
 
 	DiskWrite(disk, offset * vol->hdr.BytesPerSector, sizeof(SPFS_HEADER), &vol->hdr);
 
+	qword size = vol->hdr.BytesPerSector;
+
+	byte* tmpData = new byte[size];
+	memset(tmpData, 0, size);
+
+	for (qword i = 0; i < vol->hdr.NumAllocationTables; i++) {
+		qword offset = (vol->hdr.AllocationTable + i) * size;
+		DiskWrite(disk, offset, size, tmpData);
+	}
 }
 
 void CloseVolume(SPFS_VOLUME* vol) {
@@ -110,27 +62,11 @@ void CloseVolume(SPFS_VOLUME* vol) {
 	vol->handle = INVALID_HANDLE_VALUE;
 }
 
-word VolumeGetFileEntry(SPFS_VOLUME* vol, const char* path, SPFS_FILE_ENTRY* entry) {
-	if (!vol || !path || !entry) return SPFS_ERROR_INVALID_PARAM;
 
-	byte* sector = new byte[vol->hdr.BytesPerSector];
-
-	qword tablesPerSector = vol->hdr.BytesPerSector / sizeof(SPFS_FILE_ENTRY);
-
-	char** paths;
-	dword numPaths = 0;
-
-	SplitPath(path, &paths, &numPaths);
-	
+qword VolumeGetTotalSectors(SPFS_VOLUME* vol) {
+	return vol->hdr.NumAllocationTables + vol->hdr.NumDataSectors + vol->hdr.ReservedSectors;
 }
 
-word VolumeReadFolder(SPFS_VOLUME* vol, const char* path, SPFS_FILE_ENTRY** entries, qword* num_entries) {
-
-	dword numPaths = 0;
-	char** paths;
-
-	SplitPath(path, &paths, &numPaths);
-
-
+qword VolumeGetFirstDataSector(SPFS_VOLUME* vol) {
+	return vol->hdr.AllocationTable + vol->hdr.NumAllocationTables;
 }
-

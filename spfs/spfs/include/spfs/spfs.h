@@ -91,8 +91,10 @@ word		VolumeGetFileEntry(SPFS_VOLUME* vol, const char* path, SPFS_FILE_ENTRY* en
 word		VolumeReadFolder(SPFS_VOLUME* vol, const char* path, SPFS_FILE_ENTRY** file, qword* num_entries);
 word		VolumeReadFile(SPFS_VOLUME* vol, const char* path, void** file, qword* size);
 
-word		VolumeWrite(SPFS_VOLUME* vol, const char* path, byte* data, qword size, byte attributes);
+word		VolumeWrite(SPFS_VOLUME* vol, const char* path, const byte* data, qword size, byte attributes);
 
+qword		VolumeGetTotalSectors(SPFS_VOLUME* vol);
+qword		VolumeGetFirstDataSector(SPFS_VOLUME* vol);
 
 void		DiskRead(HANDLE disk, dword offset, dword size, void* data);
 void		DiskWrite(HANDLE disk, dword offset, dword size, void* data);
