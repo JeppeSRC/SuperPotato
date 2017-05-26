@@ -16,7 +16,7 @@ typedef struct _SPFS_HEADER {
 	byte  ReservedSectors;
 	qword NumDataSectors;
 	qword NumAllocationTables;
-	qword AllocationTable;
+	qword LBA;
 } SPFS_HEADER;
 
 typedef struct _SPFS_DATE_TIME {
@@ -30,7 +30,7 @@ typedef struct _SPFS_DATE_TIME {
 typedef struct _SPFS_FILE_ENTRY {
 	byte			Type;
 	byte			Reserved0;
-	word			Reserved1;
+	byte			Reserved1;
 	byte			Name[40];
 	SPFS_DATE_TIME	CreationDate;
 	qword			Size;
@@ -61,12 +61,11 @@ typedef struct _SPFS_FORMAT {
 #define SPFS_SECTOR_FREE		0x00
 #define SPFS_SECTOR_USED		0x01
 #define SPFS_SECTOR_SYSTEM		(0x02 | SPFS_SECTOR_USED)
-#define SPFS_SECTOR_FULL		0x04
-#define SPFS_SECTOR_SYSTEM_FULL	(SPFS_SECTOR_SYSTEM | SPFS_SECTOR_FULL)
 #define SPFS_SECTOR_RESERVED	(0x08 | SPFS_SECTOR_USED)
 
 #define SPFS_SUCCESS 0x00
 
+#define SPFS_ERROR					(~0)
 #define SPFS_ERROR_NONE				SPFS_SUCCESS
 #define SPFS_ERROR_NO_MEDIA			0x01
 #define SPFS_ERROR_INVALID_PARAM	0x02
@@ -95,6 +94,7 @@ word		VolumeWrite(SPFS_VOLUME* vol, const char* path, const byte* data, qword si
 
 qword		VolumeGetTotalSectors(SPFS_VOLUME* vol);
 qword		VolumeGetFirstDataSector(SPFS_VOLUME* vol);
+qword		VolumeGetFirstAllocationTable(SPFS_VOLUME* vol);
 
 void		DiskRead(HANDLE disk, dword offset, dword size, void* data);
 void		DiskWrite(HANDLE disk, dword offset, dword size, void* data);

@@ -2,7 +2,7 @@
 #include "util.h"
 
 qword GetFirstFreeSector(SPFS_VOLUME* vol) {
-	qword table = vol->hdr.AllocationTable;
+	qword table = VolumeGetFirstAllocationTable(vol);
 	qword num = vol->hdr.NumAllocationTables;
 	qword size = vol->hdr.BytesPerSector;
 
@@ -19,32 +19,27 @@ qword GetFirstFreeSector(SPFS_VOLUME* vol) {
 		}
 	}
 
-	return (qword)-1;
+	return SPFS_ERROR;
 }
 
-qword GetFirstFileSector(SPFS_VOLUME* vol) {
-	qword table = vol->hdr.AllocationTable;
-	qword num = vol->hdr.NumAllocationTables;
-
+byte GetFirstFreeFileEntry(SPFS_VOLUME* vol, SPFS_FILE_ENTRY* parent, byte* data) {
+	qword sector = VolumeGetFirstDataSector(vol);
 	qword size = vol->hdr.BytesPerSector;
+	byte  entriesPerSector = (size - 8) / sizeof(SPFS_FILE_ENTRY);
 
-	byte* sector = new byte[size];
+	if (parent) {
 
-	for (qword i = 0; i < num; i++) {
-		qword offset = (table + i) * size;
-		DiskRead(vol->handle, offset, size, sector);
+	} else {
+		while(true) {
+			DiskRead(vol->handle, sector * size, size, data);
 
-		for (word j = 0; j < size; j++) {
-			if (sector[j] & SPFS_SECTOR_SYSTEM_FULL == SPFS_SECTOR_SYSTEM) {
-				return VolumeGetFirstDataSector(vol) + (i * size) + j;
+			for (byte i = 0; i < entriesPerSector; i++) {
+				SPFS_FILE_ENTRY* e = (SPFS_FILE_ENTRY*)data + i;
+
+				if (e->Type == SPFS_FILE_TYPE_UNUSED) return 0;
 			}
-
-			if (sector[j] & SPFS_SECTOR_USED == 0) {
-				return VolumeGetFirstDataSector(vol) + (i * size) + j;
-			}
-		}
+		} 
 	}
-
 }
 
 word VolumeGetFileEntry(SPFS_VOLUME* vol, const char* path, SPFS_FILE_ENTRY* entry) {
@@ -74,9 +69,10 @@ word VolumeReadFolder(SPFS_VOLUME* vol, const char* path, SPFS_FILE_ENTRY** entr
 word VolumeWrite(SPFS_VOLUME* vol, const char* path, const byte* data, qword size, byte attributes) {
 	if (!vol) return SPFS_ERROR_INVALID_PARAM;
 	if (!path) return SPFS_ERROR_INVALID_PARAM;
+	if (!attributes) return SPFS_ERROR_INVALID_PARAM;
 
 	qword firstDataSector = VolumeGetFirstDataSector(vol);
-	qword allocationTable = vol->hdr.AllocationTable;
+	qword allocationTable = VolumeGetFirstAllocationTable(vol);
 	word  bytesPerSector = vol->hdr.BytesPerSector;
 
 

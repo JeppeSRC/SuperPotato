@@ -28,6 +28,7 @@ dword FormatVolume(HANDLE disk, byte partition, SPFS_VOLUME* vol, SPFS_FORMAT* f
 
 	vol->hdr.Version = SPFS_VERSION;
 	vol->hdr.ReservedSectors = format->reservedSectors;
+	vol->hdr.LBA = 0;
 
 	size_t len = strlen(format->name);
 
@@ -42,17 +43,17 @@ dword FormatVolume(HANDLE disk, byte partition, SPFS_VOLUME* vol, SPFS_FORMAT* f
 
 	CalculateAllocationTable(totalSectors, vol->hdr.BytesPerSector, &vol->hdr.NumDataSectors, &vol->hdr.NumAllocationTables);
 
-	vol->hdr.AllocationTable = vol->hdr.ReservedSectors + offset;
-
-	DiskWrite(disk, offset * vol->hdr.BytesPerSector, sizeof(SPFS_HEADER), &vol->hdr);
+	DiskWrite(disk, vol->hdr.LBA * vol->hdr.BytesPerSector, sizeof(SPFS_HEADER), &vol->hdr);
 
 	qword size = vol->hdr.BytesPerSector;
 
 	byte* tmpData = new byte[size];
 	memset(tmpData, 0, size);
 
+	qword allocationTable = VolumeGetFirstAllocationTable(vol);
+
 	for (qword i = 0; i < vol->hdr.NumAllocationTables; i++) {
-		qword offset = (vol->hdr.AllocationTable + i) * size;
+		qword offset = (allocationTable + i) * size;
 		DiskWrite(disk, offset, size, tmpData);
 	}
 }
@@ -68,5 +69,9 @@ qword VolumeGetTotalSectors(SPFS_VOLUME* vol) {
 }
 
 qword VolumeGetFirstDataSector(SPFS_VOLUME* vol) {
-	return vol->hdr.AllocationTable + vol->hdr.NumAllocationTables;
+	return VolumeGetFirstAllocationTable(vol) + vol->hdr.NumAllocationTables;
+}
+
+qword VolumeGetFirstAllocationTable(SPFS_VOLUME* vol) {
+	return vol->hdr.LBA + vol->hdr.ReservedSectors;
 }
