@@ -1,0 +1,3 @@
+[submodule "SuperFileSystem"]
+	path = SuperFileSystem
+	url = https://github.com/JeppeSRC/SuperFileSystem
