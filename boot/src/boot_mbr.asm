@@ -20,30 +20,16 @@ drive:
 drive_dap_size: db 0x10
 drive_zero: db 0x00
 drive_num: dw 0x00
-drive_segment: dw 0x00
 drive_offset: dw 0x00
+drive_segment: dw 0x00
 drive_LBALow: dd 0x00
 drive_LBAHigh: dd 0x00
 
 %define SFS_ENTRY_SIZE 34
 %define SFS_STRING_SIZE 255
-%define TMP_WRITE_OFFSET 0x400
+%define TMP_WRITE_OFFSET 0x200
 
-%if 0
-print:
-	push ax
-	mov ah, 0x0E
-	.print_loop:
-	lodsb
-	cmp al, 0
-	je .done
-	int 0x10
-	jmp .print_loop
-
-	.done:
-	pop ax
-	ret
-%endif
+%include "print.inc"
 
 start:
 	BREAK
@@ -53,11 +39,14 @@ start:
 	mov ss, ax
 	mov sp, 0xFFFF
 
+	mov si, message
+	call print
+
 	mov byte [drive_number], dl
 
 	xor ax, ax
 	mov ax, word [sfs_SectorSize]
-	mul byte [sfs_ClusterSize]
+	mul word [sfs_ClusterSize]
 
 	mov [sfs_ClusterBytes], ax
 
@@ -68,13 +57,12 @@ start:
 	mov [sfs_FileEntries], al
 	pop ax
 
-	mov dl, SFS_STRING_SIZE
+	mov dx, SFS_STRING_SIZE
 	div dl
 
-	mov [sfs_StringEntries], dl
+	mov [sfs_StringEntries], al
 
-	xor eax, eax
-	mov al, byte [sfs_ReservedSectors]
+	movzx eax, byte [sfs_ReservedSectors]
 	add eax, dword [sfs_TrackingSectors]
 
 	mov [sfs_FirstCluster], eax
@@ -90,9 +78,10 @@ findFile:
 
 	call readSectors
 
+	xor esi, esi
 	mov si, TMP_WRITE_OFFSET
 
-	movzx cx, byte [sfs_FileEntries]
+	movzx ecx, byte [sfs_FileEntries]
 
 	push si
 	.findFile_loop:
@@ -108,9 +97,10 @@ findFile:
 
 		call getString
 
+		
 		mov di, filename
 
-		repe cmpsb
+		rep cmpsb
 		je readFile
 
 		pop si
@@ -144,16 +134,35 @@ readFile:
 
 	add si, 0x12
 
+	BREAK
 	mov eax, dword [si]
 	add si, 0x08
 	movzx ebx, word [sfs_ClusterBytes]
 	sub ebx, 0x08
 	div ebx
 
+	mov ecx, eax
+
 	mov eax, dword [si]
 	mov dword [drive_LBALow], eax
 
-	;TODO: readfile
+	.readFile_loop:
+		call readSectors
+
+		mov si, TMP_WRITE_OFFSET
+
+		mov ax, word [sfs_ClusterBytes]
+		sub ax, 0x08
+
+		add si, ax
+		add word [drive_offset], ax
+
+		mov eax, dword [si]
+		mov dword [drive_LBALow], eax
+		
+		loop .readFile_loop
+
+	jmp TMP_WRITE_OFFSET
 
 
 ;eax index
@@ -164,17 +173,18 @@ getString:
 
 	mov word [drive_offset], ax
 	mov eax, dword [sfs_FirstCluster]
-	inc eax
+	add al, byte [sfs_ClusterSize]
 	mov dword [drive_LBALow], eax
-
 	pop ax
-	movzx dx, byte [sfs_StringEntries]
-	div dx
 
 	call readSectors
 
+	xor dx, dx
 	cmp ax, 0
 	je .getString_skip
+
+	movzx dx, byte [sfs_StringEntries]
+	div dx
 
 	push cx
 	mov cx, ax
@@ -205,11 +215,10 @@ readSectors:
 	push ax
 	push dx
 	push si
-	mov si, drive
+	mov esi, drive
 	mov ah, 0x42
 	mov dl, byte [drive_number]
 	int 0x13
-	BREAK
 	jc .readSectors_error
 	pop si
 	pop dx
@@ -235,7 +244,8 @@ sfs_ClusterBytes: dw 0x00
 sfs_FirstCluster: dd 0x00
 
 
-filename: db 'boot_mbr2.bin', 0
+filename: db 'boot.bin', 0
+message: db 'Loading...', 0
 
 times 510 - ($ - $$) db 0
 dw 0xAA55
