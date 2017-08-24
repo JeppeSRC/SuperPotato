@@ -134,7 +134,6 @@ readFile:
 
 	add si, 0x12
 
-	BREAK
 	mov eax, dword [si]
 	add si, 0x08
 	movzx ebx, word [sfs_ClusterBytes]
@@ -142,14 +141,19 @@ readFile:
 	div ebx
 
 	mov ecx, eax
+	inc ecx
 
 	mov eax, dword [si]
+	movzx ebx, byte [sfs_ClusterSize]
+	mul ebx
+	add al, byte [sfs_ReservedSectors]
+	add eax, dword [sfs_TrackingSectors]
 	mov dword [drive_LBALow], eax
+	mov word [drive_offset], TMP_WRITE_OFFSET
+	mov si, word [drive_offset]
 
 	.readFile_loop:
 		call readSectors
-
-		mov si, TMP_WRITE_OFFSET
 
 		mov ax, word [sfs_ClusterBytes]
 		sub ax, 0x08
@@ -219,6 +223,7 @@ readSectors:
 	mov ah, 0x42
 	mov dl, byte [drive_number]
 	int 0x13
+	BREAK
 	jc .readSectors_error
 	pop si
 	pop dx
